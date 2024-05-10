@@ -6,6 +6,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from datetime import datetime, timedelta
 import json
+import hashlib
+
 
 class IssueCertificate():
 
@@ -51,6 +53,7 @@ class IssueCertificate():
         if isinstance(private_key, str):
             private_key = RSA.import_key(private_key)
 
+        # Not working
         h = SHA256.new(data)
         signature = pkcs1_15.new(private_key).sign(h)
         return signature
@@ -69,10 +72,12 @@ class IssueCertificate():
 
     def verify_certificate(self, encrypted_session_key, encrypted_certificate_data, iv, signature, issuer_private_key, issuer_public_key):
         # decrypt session key with RSA
-        session_key = self.rsa_decrypt(encrypted_session_key, issuer_private_key)
+        session_key = self.rsa_decrypt(
+            encrypted_session_key, issuer_private_key)
 
         # decrypt certificate data with AES
-        decrypted_certificate_data = self.aes_decrypt(encrypted_certificate_data, session_key, iv)
+        decrypted_certificate_data = self.aes_decrypt(
+            encrypted_certificate_data, session_key, iv)
 
         # verify signature
         if not self.verify_signature(decrypted_certificate_data, signature, issuer_public_key):
@@ -88,8 +93,10 @@ class IssueCertificate():
             return False, None, None
 
         # check validity period
-        valid_from = datetime.strptime(certificate_data['valid_from'], "%Y-%m-%d %H:%M:%S")
-        valid_to = datetime.strptime(certificate_data['valid_to'], "%Y-%m-%d %H:%M:%S")
+        valid_from = datetime.strptime(
+            certificate_data['valid_from'], "%Y-%m-%d %H:%M:%S")
+        valid_to = datetime.strptime(
+            certificate_data['valid_to'], "%Y-%m-%d %H:%M:%S")
         current_time = datetime.utcnow()
 
         if not (valid_from <= current_time <= valid_to):
@@ -97,7 +104,8 @@ class IssueCertificate():
 
         # reconstruct RSA public key from components
         public_key_components = certificate_data['public_key']
-        public_key = RSA.construct((public_key_components['n'], public_key_components['e']))
+        public_key = RSA.construct(
+            (public_key_components['n'], public_key_components['e']))
 
         # return client ID, public key, and certificate data
         return True, certificate_data['client_id'], public_key
@@ -128,12 +136,14 @@ class IssueCertificate():
     """
     # issue certificate using public key libraries with a session key (AES)
     # referred https://lists.dlitz.net/pipermail/pycrypto/2012q2/000574.html
+
     def issue_certificate(self, client_id, public_key, issuer_private_key, issuer_public_key, validity_days):
         # generate session key
         session_key = self.generate_session_key()
 
         # encrypt session key with RSA
-        encrypted_session_key = self.rsa_encrypt(session_key, issuer_public_key)
+        encrypted_session_key = self.rsa_encrypt(
+            session_key, issuer_public_key)
 
         # validity period
         valid_from = datetime.utcnow()
@@ -156,13 +166,16 @@ class IssueCertificate():
             "valid_to": valid_to.strftime("%Y-%m-%d %H:%M:%S")
         }
         # certificate_data_bytes = str(certificate_data).encode()
-        certificate_data_json = json.dumps(certificate_data)  # Serialize to JSON
+        certificate_data_json = json.dumps(
+            certificate_data)  # Serialize to JSON
 
         # sign the certificate data
-        signature = self.sign_data(certificate_data_json.encode(), issuer_private_key)
+        signature = self.sign_data(
+            certificate_data_json.encode('utf-8'), issuer_private_key)
 
         # encrypt the certificate data with AES
-        encrypted_certificate_data, iv = self.aes_encrypt(certificate_data_json.encode(), session_key)
+        encrypted_certificate_data, iv = self.aes_encrypt(
+            certificate_data_json.encode(), session_key)
 
         # return encrypted session key, encrypted certificate data, iv, and signature
         return encrypted_session_key, encrypted_certificate_data, iv, signature
@@ -182,11 +195,14 @@ class IssueCertificate():
 
         # issue certificates for clients
         #   client 1 with sub-CA1, valid for 30 days
-        client1_cert = self.issue_certificate("Client1", client1_public_key, subca1_private_key, subca1_public_key, 30)
+        client1_cert = self.issue_certificate(
+            "Client1", client1_public_key, subca1_private_key, subca1_public_key, 30)
         #   client 2 with sub-CA1, valid for 90 days
-        client2_cert = self.issue_certificate("Client2", client2_public_key, subca1_private_key, subca1_public_key, 90)
+        client2_cert = self.issue_certificate(
+            "Client2", client2_public_key, subca1_private_key, subca1_public_key, 90)
         #   client 3 with sub-CA2 private key, valid for 365 days
-        client3_cert = self.issue_certificate("Client3", client3_public_key, subca2_private_key, subca2_public_key, 365)
+        client3_cert = self.issue_certificate(
+            "Client3", client3_public_key, subca2_private_key, subca2_public_key, 365)
 
         # verify the certificate for client 1
         is_valid, client_id, client_public_key = self.verify_certificate(
@@ -204,5 +220,3 @@ class IssueCertificate():
             print("Client Public Key:", client_public_key.export_key())
         else:
             print("Certificate is not valid.")
-
-

@@ -2,6 +2,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import binascii
 
+
 class RSAEncryptorDecryptor:
     def __init__(self, key_size=2048):
         self.key_size = key_size
@@ -11,6 +12,8 @@ class RSAEncryptorDecryptor:
         key = RSA.generate(self.key_size)
         self.private_key = key.export_key()
         self.public_key = key.publickey().export_key()
+
+        return self.private_key, self.public_key
 
     def save_keys_to_files(self, public_key_file, private_key_file):
         # Save public and private keys to files
@@ -39,6 +42,7 @@ class RSAEncryptorDecryptor:
 
         return decrypted_message.decode('utf-8')
 
+
 if __name__ == '__main__':
     # Create an instance of RSAEncryptorDecryptor
     rsa_encryptor_decryptor = RSAEncryptorDecryptor()
@@ -49,7 +53,8 @@ if __name__ == '__main__':
     print("Private Key:", rsa_encryptor_decryptor.private_key.decode('utf-8'))
 
     # Save public and private keys to files
-    rsa_encryptor_decryptor.save_keys_to_files('ca_public_key.txt', 'ca_private_key.txt')
+    rsa_encryptor_decryptor.save_keys_to_files(
+        'ca_public_key.txt', 'ca_private_key.txt')
     print("Public and Private Keys saved to 'public_key.txt' and 'private_key.txt'")
 
     # Example message to be encrypted
@@ -57,9 +62,12 @@ if __name__ == '__main__':
     print("Original Message:", message)
 
     # Encrypt the message using the recipient's public key
-    encrypted_message = rsa_encryptor_decryptor.encrypt_message(message, rsa_encryptor_decryptor.public_key)
-    print("Encrypted Message:", binascii.hexlify(encrypted_message).decode('utf-8'))
+    encrypted_message = rsa_encryptor_decryptor.encrypt_message(
+        message, rsa_encryptor_decryptor.public_key)
+    print("Encrypted Message:", binascii.hexlify(
+        encrypted_message).decode('utf-8'))
 
     # Decrypt the encrypted message using the recipient's private key
-    decrypted_message = rsa_encryptor_decryptor.decrypt_message(encrypted_message, rsa_encryptor_decryptor.private_key)
+    decrypted_message = rsa_encryptor_decryptor.decrypt_message(
+        encrypted_message, rsa_encryptor_decryptor.private_key)
     print("Decrypted Message:", decrypted_message)
