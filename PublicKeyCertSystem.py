@@ -93,6 +93,15 @@ class PublicKeyCertSystem:
         cipher_rsa = PKCS1_OAEP.new(public_key)
         return cipher_rsa.encrypt(data)
 
+    def rsa_decrypt(self, encrypted_data, private_key):
+        # convert the string representation of the private key to an RSA private key object
+        # otherwise AttributeError: 'str' object has no attribute 'n'
+        if isinstance(private_key, str):
+            private_key = RSA.import_key(private_key)
+
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        return cipher_rsa.decrypt(encrypted_data)
+
     def sign_data(self, data, private_key):
         # convert the string representation of the private key to an RSA private key object
         # otherwise AttributeError: 'str' object has no attribute 'n'
@@ -107,3 +116,17 @@ class PublicKeyCertSystem:
         cipher_aes = AES.new(session_key, AES.MODE_CBC)
         ct_bytes = cipher_aes.encrypt(pad(data, AES.block_size))
         return ct_bytes, cipher_aes.iv
+
+    def aes_decrypt(self, encrypted_data, session_key, iv):
+        cipher_aes = AES.new(session_key, AES.MODE_CBC, iv)
+        return unpad(cipher_aes.decrypt(encrypted_data), AES.block_size)
+
+    def decrypt_certificate_data(self, encrypted_certificate_data, encrypted_session_key, iv, issuer_private_key):
+        session_key = self.rsa_decrypt(encrypted_session_key, issuer_private_key)
+        decrypted_certificate_data_bytes = self.aes_decrypt(encrypted_certificate_data, session_key, iv)
+
+        decrypted_certificate_data_json = decrypted_certificate_data_bytes.decode('utf-8')
+        certificate_data = json.loads(decrypted_certificate_data_json)
+
+        return certificate_data
+

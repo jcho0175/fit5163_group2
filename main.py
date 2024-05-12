@@ -1,4 +1,6 @@
 # This is a sample Python script.
+import pprint
+
 from CertificateAuthority import CertificateAuthority
 from Client import Client
 from PublicKeyCertSystem import PublicKeyCertSystem
@@ -67,11 +69,15 @@ def issue_certificate(root_ca, client):
 
     # b-3. Issue certificate for the client.
     print("Issuing certificate ....")
-    certificate = public_key_cert_system.issue_certificate(
+    encrypted_session_key, encrypted_certificate_data, iv, signature = public_key_cert_system.issue_certificate(
         client.client_id, client.public_key, client.ca.private_key, client.ca.public_key, validity_days)
     print(".... Certificate issued")
 
-    return certificate
+    # b-4. Print out the certificate.
+    print("\n=== Certificate ===")
+    decrypted_certificate = public_key_cert_system.decrypt_certificate_data(
+        encrypted_certificate_data, encrypted_session_key, iv, client.ca.private_key)
+    pprint.PrettyPrinter(width=20).pprint(decrypted_certificate)
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -132,7 +138,7 @@ def start_program():
     # Function c
     client = client_registration()
     # Function b
-    certificate = issue_certificate(root_ca, client)
+    issue_certificate(root_ca, client)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
