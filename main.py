@@ -78,6 +78,7 @@ def issue_certificate(root_ca, client):
     decrypted_certificate = public_key_cert_system.decrypt_certificate_data(
         encrypted_certificate_data, encrypted_session_key, iv, client.ca.private_key)
     pprint.PrettyPrinter(width=20).pprint(decrypted_certificate)
+    return client
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -138,7 +139,20 @@ def start_program():
     # Function c
     client = client_registration()
     # Function b
-    issue_certificate(root_ca, client)
+    client = issue_certificate(root_ca, client)
+    print("client CA: ", client.ca.__str__)
+    print("client public key: ", client.public_key)
+    print("client private key: ", client.private_key)
+
+    sub_ca_list = root_ca.sub_ca_list
+    for sub_ca in sub_ca_list:
+        if sub_ca.ca_type == client.ca:
+            client_sub_ca = sub_ca
+            break
+    print("sub ca public key: ", sub_ca.public_key)
+    print("sub ca private key: ", sub_ca.private_key)
+
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
