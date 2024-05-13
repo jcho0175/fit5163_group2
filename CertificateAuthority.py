@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import json
 
 class CertificateAuthority:
-    def __init__(self, ca_type, private_key, public_key, cert_from=None):
+    def __init__(self, ca_type="", private_key="", public_key="", cert_from=None):
         self.ca_type = ca_type
         self.cert_from = cert_from
         self.private_key = private_key

@@ -140,18 +140,19 @@ def start_program():
     client = client_registration()
     # Function b
     client = issue_certificate(root_ca, client)
-    print("client CA: ", client.ca.__str__)
-    print("client public key: ", client.public_key)
-    print("client private key: ", client.private_key)
+    print("=== Client Info ===")
+    print("Client CA: ", client.ca.ca_type)
+    print("Client public key: ", client.public_key)
+    print("Client private key: ", client.private_key)
 
     sub_ca_list = root_ca.sub_ca_list
+    client_sub_ca = CertificateAuthority()
     for sub_ca in sub_ca_list:
-        if sub_ca.ca_type == client.ca:
+        if sub_ca.ca_type == client.ca.ca_type:
             client_sub_ca = sub_ca
             break
-    print("sub ca public key: ", sub_ca.public_key)
-    print("sub ca private key: ", sub_ca.private_key)
-
+    print("Sub-ca public key: ", client_sub_ca.public_key)
+    print("Sub-ca private key: ", client_sub_ca.private_key)
 
 
 # Press the green button in the gutter to run the script.
