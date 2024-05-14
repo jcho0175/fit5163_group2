@@ -24,6 +24,33 @@ class CertificateAuthority:
                 return_str += "     " + sub_ca.ca_type + "\n"
 
         return return_str
+    
+    revoked_certificates = {}  # Dictionary to store revoked certificates {certificate_id: reason}
+
+    def revoke_certificate(self, certificate_id, reason):
+        """
+        Revoke a certificate.
+        :param certificate_id: ID of the certificate to be revoked.
+        :param reason: Reason for revocation.
+        """
+        self.revoked_certificates[certificate_id] = reason
+        print(f"Certificate {certificate_id} revoked due to: {reason}")
+
+    def check_revocation_status(self, certificate_id, validity_days):
+        """
+        Check if a certificate is revoked or expired.
+        :param certificate_id: ID of the certificate to check.
+        :param valid_to: Expiry date of the certificate.
+        :return: True if the certificate is revoked or expired, False otherwise. Also, return the reason if revoked.
+        """
+        current_time = datetime.utcnow()
+        if certificate_id in self.revoked_certificates:
+            return True, self.revoked_certificates[certificate_id]
+
+        if current_time > validity_days:
+            return True, "Expired"
+        
+        return False, None
 
     def add_sub_ca(self, sub_ca):
         self.sub_ca_list.append(sub_ca)
