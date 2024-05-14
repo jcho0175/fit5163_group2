@@ -1,22 +1,24 @@
-# This is a sample Python script.
 import pprint
 
 from certificate_authority import CertificateAuthority
 from client import Client
 from public_key_cert_system import PublicKeyCertSystem
+from csr_handler import CSRHandler
 
 public_key_cert_system = PublicKeyCertSystem()
 registered_client_list = []
 
+ 
 """
 Function a. Implement functionalities for the root CA to generate its own private/public key pair.
 """
 def create_CAs():
+    
     # a-1. Generate private/public key for the root CA
     print("Creating root CA ....")
     root_private_key, root_public_key = public_key_cert_system.generate_key_pair()
 
-    # a-2. Creat root CA object.
+    # a-2. Create root CA object.
     root_ca = CertificateAuthority("root", root_private_key, root_public_key)
     print(".... Root CA created")
 
@@ -53,7 +55,7 @@ Function b. Develop functions for issuing certIficates for clients,
 def issue_certificate(root_ca, client):
     # b-1. Choose a sub CA to issue certificate from.
     while (True):
-        chosen_sub_ca = input("Please select a sub CA\n1.Sub-CA1\n2.Sub-CA2\nYour choice:")
+        1= input("Please select a sub CA\n1.Sub-CA1\n2.Sub-CA2\nYour choice:")
         if chosen_sub_ca == '1':
             client.ca = root_ca.sub_ca_list[0]
         elif chosen_sub_ca == '2':
@@ -63,6 +65,7 @@ def issue_certificate(root_ca, client):
             continue
         break
     print("Client Information >>> \n" + client.__str__())
+    
 
     # b-2. Set a validity period (30 days).
     validity_days = 30
@@ -78,7 +81,6 @@ def issue_certificate(root_ca, client):
     decrypted_certificate = public_key_cert_system.decrypt_certificate_data(
         encrypted_certificate_data, encrypted_session_key, iv, client.ca.private_key)
     pprint.PrettyPrinter(width=20).pprint(decrypted_certificate)
-    return client
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -117,8 +119,43 @@ def client_registration():
         registered_client_list.append(client)
         print("Registered successfully: Client ID [", client_id, "]")
         return client
+    
+def client_certificate_request(client, chosen_sub_ca):
+    # d-1. Client generate CSR(Certificate Signing request)
+    print("\n===== Generating CSR =====")
+    client_csr = CSRHandler.generate_csr(client)
+    pprint.PrettyPrinter(width=20).pprint(client_csr)
+
+    # d-2. Encryption of CSR.
+    print("\n===== Encrypting CSR =====")
+    encrypted_csr = CSRHandler.encrypt_csr(client_csr, chosen_sub_ca)
+    pprint.PrettyPrinter(width=20).pprint(encrypted_csr)
+
+    # d-3. Submit CSR
+    print("\n===== Submitting CSR =====")
+    CSRHandler.submit_csr(encrypted_csr)
+
+    # d-4. CA receives and decrypt CSR.
+    print("\n===== Receiving and Decrypting CSR =====")
+    decrypted_csr = CSRHandler.receive_and_decrypt_csr()
+    pprint.PrettyPrinter(width=20).pprint(decrypted_csr)
+
+    return decrypted_csr
+
+    # e-1.Client certificate validation.
+    # e-2.Use of Public Key and CA Signature.
+    # e-3.Validity Check.
+
+    # d-1.Reasons for Revocation
+    # d-2.Certificate Revocation List (CRL)
+    # d-1.Checking Revocation Status
+
+    
 
 def start_program():
+    
+    
+    
     """
     a. Implement functionalities for the root CA to generate its own private/public key pair.
 
@@ -135,25 +172,16 @@ def start_program():
     """
     print("===== FIT5163 Group2: Public key certificate system =====")
     # Function a
-    root_ca = create_CAs()
+    root_ca = create_CAs() 
+    
+    
     # Function c
     client = client_registration()
+    
     # Function b
-    client = issue_certificate(root_ca, client)
-    print("=== Client Info ===")
-    print("Client CA: ", client.ca.ca_type)
-    print("Client public key: ", client.public_key)
-    print("Client private key: ", client.private_key)
-
-    sub_ca_list = root_ca.sub_ca_list
-    client_sub_ca = CertificateAuthority()
-    for sub_ca in sub_ca_list:
-        if sub_ca.ca_type == client.ca.ca_type:
-            client_sub_ca = sub_ca
-            break
-    print("Sub-ca public key: ", client_sub_ca.public_key)
-    print("Sub-ca private key: ", client_sub_ca.private_key)
-
+    issue_certificate(root_ca, client)
+    #function d
+    client_certificate_request(client, chosen_sub_ca)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

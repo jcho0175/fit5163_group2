@@ -1,9 +1,12 @@
 # This is a sample Python script.
 import pprint
-
+import json
 from certificate_authority import CertificateAuthority
 from client import Client
 from public_key_cert_system import PublicKeyCertSystem
+from task2 import HybridEncrypt
+from validator import CertificateValidator
+from Crypto.PublicKey import RSA
 
 public_key_cert_system = PublicKeyCertSystem()
 registered_client_list = []
@@ -78,7 +81,12 @@ def issue_certificate(root_ca, client):
     decrypted_certificate = public_key_cert_system.decrypt_certificate_data(
         encrypted_certificate_data, encrypted_session_key, iv, client.ca.private_key)
     pprint.PrettyPrinter(width=20).pprint(decrypted_certificate)
-    return client
+
+   
+    
+    return client, decrypted_certificate
+
+    
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -117,6 +125,93 @@ def client_registration():
         registered_client_list.append(client)
         print("Registered successfully: Client ID [", client_id, "]")
         return client
+    
+def request_encrypt(client, sub_ca_pu, sub_ca_pr, decrypted_certificate):
+    try:
+        # Retrieve client information
+        print("\n-- Now encrypting certificate --")
+        if registered_client_list:  
+            # Convert the decrypted_certificate to a dictionary if it's a string
+            if isinstance(decrypted_certificate, str):
+                decrypted_cert = json.loads(decrypted_certificate)
+            else:
+                decrypted_cert = decrypted_certificate
+
+            print("Decrypted Certificate Request:", decrypted_cert)
+            print("Type of Decrypted Certificate:", type(decrypted_cert))
+
+            # Encrypt the certificate request using hybrid encryption
+            encrypted_aes_key, nonce, aes_tag, encrypted_request = HybridEncrypt.encrypt_certificate_request(json.dumps(decrypted_cert), sub_ca_pu)
+
+            # Send the encrypted request to CA
+            HybridEncrypt.send_encrypted_request_to_ca(encrypted_request)
+
+            # Decrypt the encrypted request
+            decrypted_cert = HybridEncrypt.decrypt_certificate_request(encrypted_aes_key, nonce, aes_tag, encrypted_request, sub_ca_pr)
+
+            print("Decrypted Certificate Request:", decrypted_cert)
+            print("Type of Decrypted Certificate:", type(decrypted_cert))
+
+            #  decrypted_cert is a dictionary
+            if isinstance(decrypted_cert, str):
+                decrypted_cert = json.loads(decrypted_cert)
+
+            # Generate CA signature for the decrypted certificate
+            print("\n-- Now generating signature --")
+            signature = HybridEncrypt.generate_ca_signature(decrypted_cert, sub_ca_pr)
+            signature = '121ese1123sd'
+            # Attach CA signature to the decrypted certificate
+            print("\n-- Now attaching signature to certificate --")
+            decrypted_cert_with_signature = HybridEncrypt.attach_ca_signature(decrypted_cert, signature)
+            print(decrypted_cert_with_signature)
+            
+            # Extract the signature from the certificate
+            signature = decrypted_cert_with_signature.get('signature')
+            
+
+            return decrypted_cert_with_signature
+        else:
+            print("No clients registered. Please register a client first.")
+        
+    except Exception as e:
+        print("Error:", e)
+
+
+
+        
+
+def validation(decrypted_cert_with_signature, client_sub_ca_pu,signature):
+   # Validate the certificate with CA signature
+        print("\n-- Now extracting certificate data --")
+        # Extract the signature from the certificate
+        
+        valid_cert = CertificateValidator.validate_certificate(decrypted_cert_with_signature, client_sub_ca_pu,signature)
+            
+        if valid_cert:
+            print("Certificate is valid.")
+        else:
+            print("Certificate validation failed.")
+
+#def revoke(certificate_id, reason="Compromised", auth_token=None):
+ #   ca_instance = CertificateAuthority()  # Create an instance of the CertificateAuthority class
+    # Create an instance of the CertificateAuthority class with the required parameters
+  #  ca_type = 
+  #  private_key = "your_private_key"
+  #  public_key = "your_public_key"
+   # ca_instance = CertificateAuthority(ca_type, private_key, public_key)
+    # Revoke a certificate using the instance
+   # ca_instance.revoke_certificate(certificate_id, reason, auth_token)
+
+    # Check revocation status
+   # revoked, reason = ca_instance.check_revocation_status(certificate_id)
+    #if revoked:
+ #       print(f"The certificate {certificate_id} is revoked due to: {reason}")
+   # else:
+   #     print(f"The certificate {certificate_id} is not revoked.")
+
+
+
+
 
 def start_program():
     """
@@ -133,30 +228,51 @@ def start_program():
 
     f. Implement mechanisms for certificate revocation in case of compromise or expiration.
     """
-    print("===== FIT5163 Group2: Public key certificate system =====")
     # Function a
     root_ca = create_CAs()
     # Function c
+    
     client = client_registration()
+    
     # Function b
-    client = issue_certificate(root_ca, client)
-    print("=== Client Info ===")
-    print("Client CA: ", client.ca.ca_type)
-    print("Client public key: ", client.public_key)
-    print("Client private key: ", client.private_key)
+    client, decrypted_certificate = issue_certificate(root_ca, client)
+    print("client CA: ", client.ca.__str__)
+    print("client public key: ", client.public_key)
+    print("client private key: ", client.private_key)
 
     sub_ca_list = root_ca.sub_ca_list
-    client_sub_ca = CertificateAuthority()
+    
     for sub_ca in sub_ca_list:
-        if sub_ca.ca_type == client.ca.ca_type:
+        if sub_ca.ca_type == client.ca:
             client_sub_ca = sub_ca
+            
             break
-    print("Sub-ca public key: ", client_sub_ca.public_key)
-    print("Sub-ca private key: ", client_sub_ca.private_key)
+    print("sub ca public key: ", sub_ca.public_key)
+    print("sub ca private key: ", sub_ca.private_key)
+
+    client_sub_ca_pu = sub_ca.public_key
+    sub_ca_pr = sub_ca.private_key
+
+    if client_sub_ca_pu:
+        # Call request_encrypt() with the selected client and sub-CA
+        decrypted_cert_with_signature = request_encrypt(client, client_sub_ca_pu, sub_ca_pr, decrypted_certificate)
+        # Extract the signature from the decrypted certificate with signature
+        signature = decrypted_cert_with_signature.get('signature')
+        # Call the validation function
+        val = validation(decrypted_cert_with_signature, client_sub_ca_pu, signature)
+    else:
+        print("Sub-CA not found for the client.")
+        
+    print(registered_client_list)
+    
+
+
+
+    
+
+
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     start_program()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
