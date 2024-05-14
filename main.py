@@ -70,14 +70,14 @@ def issue_certificate(root_ca, client):
 
     # b-3. Issue certificate for the client.
     print("Issuing certificate ....")
-    certificate_data_json, encrypted_session_key = public_key_cert_system.issue_certificate(
-        client.client_id, client.public_key, client.ca.private_key, client.ca.public_key, validity_days)
+    certificate_data_json = public_key_cert_system.issue_certificate(
+        client.client_id, client.public_key, validity_days)
     print(".... Certificate issued")
 
     # b-4. Print out the certificate.
     print("\n=== Certificate ===")
     print(certificate_data_json)
-    return client, certificate_data_json, encrypted_session_key
+    return client, certificate_data_json
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -138,7 +138,7 @@ def start_program():
     # Function c
     client = client_registration()
     # Function b
-    client, certificate_data_json, session_key = issue_certificate(root_ca, client)
+    client, certificate_data_json = issue_certificate(root_ca, client)
     print("=== Client Info ===")
     print("Client CA: ", client.ca.ca_type)
     print("Client public key: ", client.public_key)
@@ -155,7 +155,7 @@ def start_program():
 
     # Function d
     encrypted_certificate_data, iv, signature, encrypted_session_key = public_key_cert_system.request_encrypt(
-        certificate_data_json, client_sub_ca.public_key, client_sub_ca.private_key, session_key)
+        certificate_data_json, client_sub_ca.public_key, client_sub_ca.private_key)
 
     # Function e
     is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(

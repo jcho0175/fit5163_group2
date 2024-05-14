@@ -1,5 +1,3 @@
-import hashlib
-
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Signature import pkcs1_15
@@ -9,6 +7,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from datetime import datetime, timedelta
 import json
+
 class PublicKeyCertSystem:
 
     master_key = None
@@ -38,10 +37,7 @@ class PublicKeyCertSystem:
 
     # issue certificate using public key libraries with a session key (AES)
     # referred https://lists.dlitz.net/pipermail/pycrypto/2012q2/000574.html
-    def issue_certificate(self, client_id, public_key, issuer_private_key, issuer_public_key, validity_days):
-        # generate session key
-        session_key = self.generate_session_key()
-
+    def issue_certificate(self, client_id, public_key, validity_days):
         # validity period
         valid_from = datetime.utcnow()
         valid_to = valid_from + timedelta(days=validity_days)
@@ -66,18 +62,7 @@ class PublicKeyCertSystem:
         certificate_data_json = json.dumps(
             certificate_data)  # Serialize to JSON
 
-        return certificate_data_json, session_key
-        """
-        # sign the certificate data
-        signature = self.sign_data(
-            certificate_data_json.encode('utf-8'), issuer_private_key)
-
-        # encrypt the certificate data with AES
-        encrypted_certificate_data, iv = self.aes_encrypt(
-            certificate_data_json.encode(), session_key)
-
-        # return encrypted session key, encrypted certificate data, iv, and signature
-        return encrypted_session_key, encrypted_certificate_data, iv, signature """
+        return certificate_data_json
 
     def generate_session_key(self):
         return get_random_bytes(16)  # AES session key (16 bytes)
@@ -128,7 +113,10 @@ class PublicKeyCertSystem:
 
         return certificate_data
 
-    def request_encrypt(self, certificate_data_json, issuer_public_key, issuer_private_key, session_key):
+    def request_encrypt(self, certificate_data_json, issuer_public_key, issuer_private_key):
+        # generate session key
+        session_key = self.generate_session_key()
+
         # adding signature to the certificate
         signature = self.sign_data(
             certificate_data_json.encode('utf-8'), issuer_private_key)
