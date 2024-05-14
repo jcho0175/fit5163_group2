@@ -8,9 +8,9 @@ class Client:
     def __str__(self):
         return_str = "Client ID: " + self.client_id + "\n"
         if self.public_key != "":
-            return_str += "Public Key: generated\n"
+            return_str += "Public Key: " + self.public_key[0:40] + "...\n"
         if self.private_key != "":
-            return_str += "Private Key: generated\n"
+            return_str += "Private Key: " + self.private_key[0:40] + "...\n"
         return_str += "Certificate Authority: " + self.ca.ca_type + "\n"
 
         return return_str

@@ -104,30 +104,25 @@ class PublicKeyCertSystem:
         cipher_aes = AES.new(session_key, AES.MODE_CBC, iv)
         return unpad(cipher_aes.decrypt(encrypted_data), AES.block_size)
 
-    def decrypt_certificate_data(self, encrypted_certificate_data, encrypted_session_key, iv, issuer_private_key):
-        session_key = self.rsa_decrypt(encrypted_session_key, issuer_private_key)
-        decrypted_certificate_data_bytes = self.aes_decrypt(encrypted_certificate_data, session_key, iv)
-
-        decrypted_certificate_data_json = decrypted_certificate_data_bytes.decode('utf-8')
-        certificate_data = json.loads(decrypted_certificate_data_json)
-
-        return certificate_data
-
     def request_encrypt(self, certificate_data_json, issuer_public_key, issuer_private_key):
         # generate session key
         session_key = self.generate_session_key()
+        print("     Session key created")
 
         # adding signature to the certificate
         signature = self.sign_data(
             certificate_data_json.encode('utf-8'), issuer_private_key)
+        print("     Signature added")
 
         # encrypt the certificate data with AES
         encrypted_certificate_data, iv = self.aes_encrypt(
             certificate_data_json.encode(), session_key)
+        print("     Certificate encrypted")
 
         # encrypt session key with RSA
         encrypted_session_key = self.rsa_encrypt(
             session_key, issuer_public_key)
+        print("     Session key encrypted")
 
         # return encrypted session key, encrypted certificate data, iv, and signature
         return encrypted_certificate_data, iv, signature, encrypted_session_key

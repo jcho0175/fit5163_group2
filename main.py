@@ -6,7 +6,9 @@ from certificate_authority import CertificateAuthority
 from client import Client
 from public_key_cert_system import PublicKeyCertSystem
 
+# Logic class
 public_key_cert_system = PublicKeyCertSystem()
+# List of client Registered
 registered_client_list = []
 
 """
@@ -154,11 +156,13 @@ def start_program():
     print("Sub-ca private key: ", client_sub_ca.private_key)
 
     # Function d
-    print("=== Client_Request_Encryption ===")
+    print("Request certificate encryption ....")
     encrypted_certificate_data, iv, signature, encrypted_session_key = public_key_cert_system.request_encrypt(
         certificate_data_json, client_sub_ca.public_key, client_sub_ca.private_key)
+    print(".... Encrypted successful")
 
     # Function e
+    print("Verifying certificate ....")
     is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(
         encrypted_session_key,
         encrypted_certificate_data,
@@ -188,13 +192,15 @@ def start_program():
         client_sub_ca.public_key
     )
 
+    certificate_dict = json.loads(certificate_data_json)
+    print('certificate_dict >> ', certificate_dict)
     if is_valid:
         print("Certificate is valid.")
         print("Client ID:", client_id)
         print("Client Public Key:", client_public_key.export_key())
         
         # Check revocation status
-        revoked, reason = root_ca.check_revocation_status(client_id, client.valid_to)
+        revoked, reason = root_ca.check_revocation_status(client_id, certificate_dict["valid_to"])
         if revoked:
             print(f"The certificate {client_id} is revoked or expired due to: {reason}")
         else:
@@ -203,12 +209,10 @@ def start_program():
         print("Certificate is not valid.")
 
     # Function f: Revoking a certificate (for demonstration purposes)
-    certificate_id_to_revoke = input("Enter the ID of the certificate to revoke (if any): ")
+    certificate_id_to_revoke = input("Enter the client ID of the certificate to revoke (if any): ")
     if certificate_id_to_revoke:
         reason_for_revocation = input("Enter the reason for revocation: ")
         root_ca.revoke_certificate(certificate_id_to_revoke, reason_for_revocation)
-
-    
 
 
 # Press the green button in the gutter to run the script.
