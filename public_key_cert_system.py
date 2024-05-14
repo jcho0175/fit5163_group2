@@ -12,6 +12,7 @@ class PublicKeyCertSystem:
 
     master_key = None
     counter = 0
+
     def generate_key_pair(self):
         key = RSA.generate(2048)
         private_key = key.export_key().decode('utf-8')
@@ -35,8 +36,6 @@ class PublicKeyCertSystem:
     def random_func(self, seed):
         return seed.to_bytes((seed.bit_length() + 7) // 8, byteorder='big')
 
-    # issue certificate using public key libraries with a session key (AES)
-    # referred https://lists.dlitz.net/pipermail/pycrypto/2012q2/000574.html
     def issue_certificate(self, client_id, public_key, validity_days):
         # validity period
         valid_from = datetime.utcnow()
@@ -104,6 +103,8 @@ class PublicKeyCertSystem:
         cipher_aes = AES.new(session_key, AES.MODE_CBC, iv)
         return unpad(cipher_aes.decrypt(encrypted_data), AES.block_size)
 
+    # encryption using RSA with a session key (AES)
+    # referred https://lists.dlitz.net/pipermail/pycrypto/2012q2/000574.html
     def request_encrypt(self, certificate_data_json, issuer_public_key, issuer_private_key):
         # generate session key
         session_key = self.generate_session_key()

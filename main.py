@@ -1,7 +1,14 @@
-# This is a sample Python script.
-import json
-import pprint
+"""
+Group: 2
+Name: Jenny Choi 33945772
+      Jay Pardeshi 34023891
+      Ibrahim Ibrahim 33669546
+      JiaxunYu 28099958
+Topic:
+    Design a public key certificate system that involves one root CA, two sub-CA and three clients.
+"""
 
+import json
 from certificate_authority import CertificateAuthority
 from client import Client
 from public_key_cert_system import PublicKeyCertSystem
@@ -65,6 +72,7 @@ def issue_certificate(root_ca, client):
             print("There are only 2 Sub-CAs in the system.")
             continue
         break
+    print()
     print("Client Information >>> \n" + client.__str__())
 
     # b-2. Set a validity period (30 days).
@@ -107,6 +115,7 @@ def client_registration():
     print("Generating key pair ....")
     private_key, public_key = public_key_cert_system.generate_key_pair_for_clients(public_key_provided)
     print(".... Key pair generated")
+    print()
 
     # c-4. Register client.
     if len(registered_client_list) == 3:
@@ -156,13 +165,14 @@ def start_program():
     print("Sub-ca private key: ", client_sub_ca.private_key)
 
     # Function d
+    print()
     print("Request certificate encryption ....")
     encrypted_certificate_data, iv, signature, encrypted_session_key = public_key_cert_system.request_encrypt(
         certificate_data_json, client_sub_ca.public_key, client_sub_ca.private_key)
-    print(".... Encrypted successful")
+    print(".... Encrypted successfully")
 
     # Function e
-    print("Verifying certificate ....")
+    print()
     is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(
         encrypted_session_key,
         encrypted_certificate_data,
@@ -180,9 +190,7 @@ def start_program():
         print("Certificate is not valid.")
 
     # Function f
-
     # Check revocation status
-
     is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(
         encrypted_session_key,
         encrypted_certificate_data,
@@ -192,23 +200,25 @@ def start_program():
         client_sub_ca.public_key
     )
 
-    certificate_dict = json.loads(certificate_data_json)
-    print('certificate_dict >> ', certificate_dict)
     if is_valid:
         print("Certificate is valid.")
         print("Client ID:", client_id)
         print("Client Public Key:", client_public_key.export_key())
-        
-        # Check revocation status
-        revoked, reason = root_ca.check_revocation_status(client_id, certificate_dict["valid_to"])
-        if revoked:
-            print(f"The certificate {client_id} is revoked or expired due to: {reason}")
-        else:
-            print(f"The certificate {client_id} is not revoked.")
+
     else:
         print("Certificate is not valid.")
 
     # Function f: Revoking a certificate (for demonstration purposes)
+    # Check revocation status
+    print()
+    certificate_dict = json.loads(certificate_data_json)
+    revoked, reason = root_ca.check_revocation_status(client_id, certificate_dict["valid_to"])
+    if revoked:
+        print(f"The certificate {client_id} is revoked or expired due to: {reason}")
+    else:
+        print(f"The certificate {client_id} is not revoked.")
+
+    # Revoking a certificate (for demonstration purposes)
     certificate_id_to_revoke = input("Enter the client ID of the certificate to revoke (if any): ")
     if certificate_id_to_revoke:
         reason_for_revocation = input("Enter the reason for revocation: ")
