@@ -189,25 +189,6 @@ def start_program():
     else:
         print("Certificate is not valid.")
 
-    # Function f
-    # Check revocation status
-    is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(
-        encrypted_session_key,
-        encrypted_certificate_data,
-        iv,
-        signature,
-        client_sub_ca.private_key,
-        client_sub_ca.public_key
-    )
-
-    if is_valid:
-        print("Certificate is valid.")
-        print("Client ID:", client_id)
-        print("Client Public Key:", client_public_key.export_key())
-
-    else:
-        print("Certificate is not valid.")
-
     # Function f: Revoking a certificate (for demonstration purposes)
     # Check revocation status
     print()
