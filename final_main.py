@@ -1,12 +1,15 @@
 # This is a sample Python script.
 import pprint
 import json
-from certificate_authority import CertificateAuthority
-from client import Client
-from public_key_cert_system import PublicKeyCertSystem
+import base64
+
+from CertificateAuthority import CertificateAuthority
+from Client import Client
+from PublicKeyCertSystem import PublicKeyCertSystem
 from task2 import HybridEncrypt
 from validator import CertificateValidator
-from Crypto.PublicKey import RSA
+from Issue_certificate import IssueCertificate
+
 
 public_key_cert_system = PublicKeyCertSystem()
 registered_client_list = []
@@ -152,45 +155,84 @@ def request_encrypt(client, sub_ca_pu, sub_ca_pr, decrypted_certificate):
             print("Decrypted Certificate Request:", decrypted_cert)
             print("Type of Decrypted Certificate:", type(decrypted_cert))
 
-            #  decrypted_cert is a dictionary
+           #  decrypted_cert is a dictionary
             if isinstance(decrypted_cert, str):
                 decrypted_cert = json.loads(decrypted_cert)
 
             # Generate CA signature for the decrypted certificate
             print("\n-- Now generating signature --")
-            signature = HybridEncrypt.generate_ca_signature(decrypted_cert, sub_ca_pr)
-            signature = '121ese1123sd'
+            # Convert decrypted_cert to bytes
+            decrypted_cert_bytes = json.dumps(decrypted_cert).encode('utf-8')
+            # Generate signature
+            print(sub_ca_pr)
+            # Create an instance of IssueCertificate
+            cert_issuer = IssueCertificate()
+            signature = cert_issuer.sign_data(decrypted_cert_bytes, sub_ca_pr)
+            # Convert signature to string for attachment
+            signature_str = signature.hex()
+
             # Attach CA signature to the decrypted certificate
             print("\n-- Now attaching signature to certificate --")
             decrypted_cert_with_signature = HybridEncrypt.attach_ca_signature(decrypted_cert, signature)
             print(decrypted_cert_with_signature)
-            
-            # Extract the signature from the certificate
-            signature = decrypted_cert_with_signature.get('signature')
-            
 
-            return decrypted_cert_with_signature
+            # Verify the signature
+            # Convert decrypted_cert_with_signature dictionary to JSON string
+            
+            print("\n-- Verifying signature --")
+            # Convert dictionary values to strings
+            decrypted_cert_with_signature_str = {str(key): str(value) for key, value in decrypted_cert_with_signature.items()}
+
+            # Convert decrypted_cert_with_signature to JSON string
+            decrypted_cert_with_signature_json_str = json.dumps(decrypted_cert_with_signature_str)
+
+            # Convert JSON string to bytes
+            decrypted_cert_with_signature_bytes = decrypted_cert_with_signature_json_str.encode('utf-8')
+            print("Signature to verify:", signature_str)
+            print("Data to verify:", decrypted_cert_with_signature_bytes)
+            print("Public key:", sub_ca_pu)
+            if cert_issuer.verify_signature(decrypted_cert_with_signature_bytes, signature_str, sub_ca_pu):
+                print("Signature Verified")
+            else:
+                print("Signature Not Verified")
+
+            # Validate the certificate
+            print("\n-- Validating certificate --")
+            validation_result, _, _ = cert_issuer.verify_certificate(
+                decrypted_cert_with_signature['encrypted_session_key'],
+                decrypted_cert_with_signature['encrypted_certificate_data'],
+                decrypted_cert_with_signature['iv'],
+                signature,
+                sub_ca_pr,
+                sub_ca_pu
+            )
+
+            if validation_result:
+                print("Certificate is valid.")
+            else:
+                print("Certificate is not valid.")
+
+            return decrypted_cert_with_signature, signature_str
+
         else:
             print("No clients registered. Please register a client first.")
-        
+            return None, None
     except Exception as e:
         print("Error:", e)
+        return None, None
+
+def revoke():
+    # Revoke a certificate
+    certificate_issuer.revoke_certificate(client2_cert[0])
 
 
 
         
 
-def validation(decrypted_cert_with_signature, client_sub_ca_pu,signature):
-   # Validate the certificate with CA signature
-        print("\n-- Now extracting certificate data --")
-        # Extract the signature from the certificate
-        
-        valid_cert = CertificateValidator.validate_certificate(decrypted_cert_with_signature, client_sub_ca_pu,signature)
-            
-        if valid_cert:
-            print("Certificate is valid.")
-        else:
-            print("Certificate validation failed.")
+
+
+
+
 
 #def revoke(certificate_id, reason="Compromised", auth_token=None):
  #   ca_instance = CertificateAuthority()  # Create an instance of the CertificateAuthority class
@@ -249,21 +291,21 @@ def start_program():
             break
     print("sub ca public key: ", sub_ca.public_key)
     print("sub ca private key: ", sub_ca.private_key)
-
+    
     client_sub_ca_pu = sub_ca.public_key
     sub_ca_pr = sub_ca.private_key
+    
 
-    if client_sub_ca_pu:
+    
         # Call request_encrypt() with the selected client and sub-CA
-        decrypted_cert_with_signature = request_encrypt(client, client_sub_ca_pu, sub_ca_pr, decrypted_certificate)
+    decrypted_cert_with_signature,signature_str  = request_encrypt(client, client_sub_ca_pu, sub_ca_pr, decrypted_certificate)
         # Extract the signature from the decrypted certificate with signature
-        signature = decrypted_cert_with_signature.get('signature')
+    
+    
         # Call the validation function
-        val = validation(decrypted_cert_with_signature, client_sub_ca_pu, signature)
-    else:
-        print("Sub-CA not found for the client.")
-        
-    print(registered_client_list)
+    public_key = client_sub_ca_pu
+    
+    
     
 
 
