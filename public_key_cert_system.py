@@ -42,10 +42,6 @@ class PublicKeyCertSystem:
         # generate session key
         session_key = self.generate_session_key()
 
-        # encrypt session key with RSA
-        encrypted_session_key = self.rsa_encrypt(
-            session_key, issuer_public_key)
-
         # validity period
         valid_from = datetime.utcnow()
         valid_to = valid_from + timedelta(days=validity_days)
@@ -70,6 +66,8 @@ class PublicKeyCertSystem:
         certificate_data_json = json.dumps(
             certificate_data)  # Serialize to JSON
 
+        return certificate_data_json, session_key
+        """
         # sign the certificate data
         signature = self.sign_data(
             certificate_data_json.encode('utf-8'), issuer_private_key)
@@ -79,7 +77,7 @@ class PublicKeyCertSystem:
             certificate_data_json.encode(), session_key)
 
         # return encrypted session key, encrypted certificate data, iv, and signature
-        return encrypted_session_key, encrypted_certificate_data, iv, signature
+        return encrypted_session_key, encrypted_certificate_data, iv, signature """
 
     def generate_session_key(self):
         return get_random_bytes(16)  # AES session key (16 bytes)
@@ -130,3 +128,70 @@ class PublicKeyCertSystem:
 
         return certificate_data
 
+    def request_encrypt(self, certificate_data_json, issuer_public_key, issuer_private_key, session_key):
+        # adding signature to the certificate
+        signature = self.sign_data(
+            certificate_data_json.encode('utf-8'), issuer_private_key)
+
+        # encrypt the certificate data with AES
+        encrypted_certificate_data, iv = self.aes_encrypt(
+            certificate_data_json.encode(), session_key)
+
+        # encrypt session key with RSA
+        encrypted_session_key = self.rsa_encrypt(
+            session_key, issuer_public_key)
+
+        # return encrypted session key, encrypted certificate data, iv, and signature
+        return encrypted_certificate_data, iv, signature, encrypted_session_key
+
+    def verify_certificate(self, encrypted_session_key, encrypted_certificate_data, iv, signature, issuer_private_key, issuer_public_key):
+        # decrypt session key with RSA
+        session_key = self.rsa_decrypt(
+            encrypted_session_key, issuer_private_key)
+
+        # decrypt certificate data with AES
+        decrypted_certificate_data = self.aes_decrypt(
+            encrypted_certificate_data, session_key, iv)
+
+        # verify signature
+        if not self.verify_signature(decrypted_certificate_data, signature, issuer_public_key):
+            return False, None, None
+
+        # convert decrypted certificate data to dictionary
+        # NameError: name 'RsaKey' is not defined
+        # certificate_data = eval(decrypted_certificate_data.decode())
+        try:
+            certificate_data = json.loads(decrypted_certificate_data.decode())
+        except json.JSONDecodeError as e:
+            print('json.JSONDecodeError: ', str(e))
+            return False, None, None
+
+        # check validity period
+        valid_from = datetime.strptime(
+            certificate_data['valid_from'], "%Y-%m-%d %H:%M:%S")
+        valid_to = datetime.strptime(
+            certificate_data['valid_to'], "%Y-%m-%d %H:%M:%S")
+        current_time = datetime.utcnow()
+
+        if not (valid_from <= current_time <= valid_to):
+            return False, None, None
+
+        # reconstruct RSA public key from components
+        public_key_components = certificate_data['public_key']
+        public_key = RSA.construct(
+            (public_key_components['n'], public_key_components['e']))
+
+        # return client ID, public key, and certificate data
+        return True, certificate_data['client_id'], public_key
+
+    def verify_signature(self, data, signature, public_key):
+        if isinstance(public_key, str):
+            public_key = RSA.import_key(public_key)
+        h = SHA256.new(data)
+        try:
+            pkcs1_15.new(public_key).verify(h, signature)
+            print('Signature Verified')
+            return True
+        except Exception as e:
+            print('Signature not verified', str(e))
+            return False

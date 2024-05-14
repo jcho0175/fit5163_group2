@@ -1,4 +1,5 @@
 # This is a sample Python script.
+import json
 import pprint
 
 from certificate_authority import CertificateAuthority
@@ -69,16 +70,14 @@ def issue_certificate(root_ca, client):
 
     # b-3. Issue certificate for the client.
     print("Issuing certificate ....")
-    encrypted_session_key, encrypted_certificate_data, iv, signature = public_key_cert_system.issue_certificate(
+    certificate_data_json, encrypted_session_key = public_key_cert_system.issue_certificate(
         client.client_id, client.public_key, client.ca.private_key, client.ca.public_key, validity_days)
     print(".... Certificate issued")
 
     # b-4. Print out the certificate.
     print("\n=== Certificate ===")
-    decrypted_certificate = public_key_cert_system.decrypt_certificate_data(
-        encrypted_certificate_data, encrypted_session_key, iv, client.ca.private_key)
-    pprint.PrettyPrinter(width=20).pprint(decrypted_certificate)
-    return client
+    print(certificate_data_json)
+    return client, certificate_data_json, encrypted_session_key
 
 """
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
@@ -139,7 +138,7 @@ def start_program():
     # Function c
     client = client_registration()
     # Function b
-    client = issue_certificate(root_ca, client)
+    client, certificate_data_json, session_key = issue_certificate(root_ca, client)
     print("=== Client Info ===")
     print("Client CA: ", client.ca.ca_type)
     print("Client public key: ", client.public_key)
@@ -153,6 +152,27 @@ def start_program():
             break
     print("Sub-ca public key: ", client_sub_ca.public_key)
     print("Sub-ca private key: ", client_sub_ca.private_key)
+
+    # Function d
+    encrypted_certificate_data, iv, signature, encrypted_session_key = public_key_cert_system.request_encrypt(
+        certificate_data_json, client_sub_ca.public_key, client_sub_ca.private_key, session_key)
+
+    # Function e
+    is_valid, client_id, client_public_key = public_key_cert_system.verify_certificate(
+        encrypted_session_key,
+        encrypted_certificate_data,
+        iv,
+        signature,
+        client_sub_ca.private_key,
+        client_sub_ca.public_key
+    )
+
+    if is_valid:
+        print("Certificate is valid.")
+        print("Client ID:", client_id)
+        print("Client Public Key:", client_public_key.export_key())
+    else:
+        print("Certificate is not valid.")
 
 
 # Press the green button in the gutter to run the script.

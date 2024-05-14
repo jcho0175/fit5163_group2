@@ -15,9 +15,9 @@ class CertificateAuthority:
         if self.cert_from is not None:
             return_str += "Parent Authority: " + self.cert_from.ca_type + "\n"
         if self.public_key != "":
-            return_str += "Public Key: generated\n"
+            return_str += "Public Key: " + self.public_key[0:40] + "...\n"
         if self.private_key != "":
-            return_str += "Private Key: generated\n"
+            return_str += "Private Key: " + self.private_key[0:40] + "...\n"
         if len(self.sub_ca_list) > 0:
             return_str += "Subordinate CAs:\n"
             for sub_ca in self.sub_ca_list:
