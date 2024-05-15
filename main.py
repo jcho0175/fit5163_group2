@@ -6,6 +6,12 @@ Name: Jenny Choi 33945772
       JiaxunYu 28099958
 Topic:
     Design a public key certificate system that involves one root CA, two sub-CA and three clients.
+
+Suggestions:
+    1) Add more fields in certificate ex) domain name / student id
+    2) Chain of verification: root - sub ca - client
+    3) No need to choose sub CA
+    4) Revocation by root authority
 """
 
 import json

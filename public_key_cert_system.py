@@ -128,7 +128,8 @@ class PublicKeyCertSystem:
         # return encrypted session key, encrypted certificate data, iv, and signature
         return encrypted_certificate_data, iv, signature, encrypted_session_key
 
-    def verify_certificate(self, encrypted_session_key, encrypted_certificate_data, iv, signature, issuer_private_key, issuer_public_key):
+    def verify_certificate(self, encrypted_session_key, encrypted_certificate_data, iv, signature,
+                           issuer_private_key, issuer_public_key):
         # decrypt session key with RSA
         session_key = self.rsa_decrypt(
             encrypted_session_key, issuer_private_key)
