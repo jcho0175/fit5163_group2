@@ -1,9 +1,9 @@
 """
 Group: 2
-Name: Jenny Choi 33945772
-      Jay Pardeshi 34023891
-      Ibrahim Ibrahim 33669546
-      JiaxunYu 28099958
+Authors: Jenny Choi 33945772
+         Jay Pardeshi 34023891
+         Ibrahim Ibrahim 33669546
+         JiaxunYu 28099958
 Topic:
     Design a public key certificate system that involves one root CA, two sub-CA and three clients.
 
@@ -37,6 +37,9 @@ domain_name = "student.monash.edu"
 Function a. Implement functionalities for the root CA to generate its own private/public key pair.
 """
 def create_CAs():
+    """
+    Create one root CA and it 2 sub-CAs.
+    """
     # a-1. Generate private/public key for the root CA
     print("Creating root CA ....")
     root_private_key, root_public_key = public_key_cert_system.generate_key_pair()
@@ -54,7 +57,7 @@ def create_CAs():
     sub_ca1 = CertificateAuthority("sub-CA1", sub1_private_key, sub1_public_key, root_ca)
     sub_ca2 = CertificateAuthority("sub-CA2", sub2_private_key, sub2_public_key, root_ca)
 
-    # Create certificates for Root CA and Sub CAs
+    # a-5. Create certificates and signature for Root CA
     root_ca_cert = public_key_cert_system.issue_certificate(
         "root_ca", root_public_key, validity_days, domain_name)
     root_encrypted_certificate_data, root_iv, root_signature, root_encrypted_session_key = public_key_cert_system.request_encrypt(
@@ -63,7 +66,8 @@ def create_CAs():
     root_ca.encrypted_cert = root_encrypted_certificate_data
     root_ca.signature = root_signature
 
-    # sub-CAs' certificates: signed by the root
+    # a-6. Create certificates and signature for sub CAs (Sub-CAs' certificates: signed by the root).
+    #   a-6-1. Sub CA 1
     sub_ca1_cert = public_key_cert_system.issue_certificate(
         "sub_ca1", sub1_public_key, validity_days, domain_name)
     sub1_encrypted_certificate_data, sub1_iv, sub1_signature, sub1_encrypted_session_key = public_key_cert_system.request_encrypt(
@@ -72,6 +76,7 @@ def create_CAs():
     sub_ca1.encrypted_cert = sub1_encrypted_certificate_data
     sub_ca1.signature = sub1_signature
 
+    #   a-6-2. Sub CA 2
     sub_ca2_cert = public_key_cert_system.issue_certificate(
         "sub_ca2", sub2_public_key, validity_days, domain_name)
     sub2_encrypted_certificate_data, sub2_iv, sub2_signature, sub2_encrypted_session_key = public_key_cert_system.request_encrypt(
@@ -80,21 +85,21 @@ def create_CAs():
     sub_ca2.encrypted_cert = sub2_encrypted_certificate_data
     sub_ca2.signature = sub2_signature
 
-    # a-5. Add sub CAs to the root CA's subordinate CA list.
+    # a-7. Add sub CAs to the root CA's subordinate CA list.
     root_ca.add_sub_ca(sub_ca1)
     root_ca.add_sub_ca(sub_ca2)
     print(".... Sub CAs created")
 
-    # a-6. Print info of each CA
+    # a-8. Print info of each CA
     print("\nCertificate authorities created >>>")
-    #   a-6-1. Root CA
+    #   a-8-1. Root CA
     print(root_ca.__str__())
-    #   a-6-2. Sub CA 1
+    #   a-8-2. Sub CA 1
     print(sub_ca1.__str__())
-    #   a-6-3. Sub CA 2
+    #   a-8-3. Sub CA 2
     print(sub_ca2.__str__())
 
-    # a-7. Return the root CA object.
+    # a-9. Return the root CA object.
     return root_ca
 
 """
@@ -102,19 +107,24 @@ Function b. Develop functions for issuing certIficates for clients,
             including necessary attributes such as client ID, public key, and validity period.
 """
 def issue_certificate(root_ca, client):
+    """
+    Issue the certificate for the client.
+    :param root_ca: Root CA object.
+    :param client: Client object.
+    """
     # b-1. Choose a sub CA randomly to issue certificate from.
     client.ca = choice(root_ca.sub_ca_list)
 
     print()
     print("Client Information >>> \n" + client.__str__())
 
-    # b-3. Issue certificate for the client.
+    # b-2. Issue certificate for the client.
     print("Issuing certificate ....")
     certificate_data_json = public_key_cert_system.issue_certificate(
         client.client_id, client.public_key, validity_days, domain_name)
     print(".... Certificate issued")
 
-    # b-4. Print out the certificate.
+    # b-3. Print out the certificate.
     print("\n=== Certificate ===")
     print(certificate_data_json)
     return client, certificate_data_json
@@ -123,6 +133,9 @@ def issue_certificate(root_ca, client):
 Function c. Implement client registration functionality, allowing clients to provide their identity and public key.
 """
 def client_registration():
+    """
+    Register a client to the system.
+    """
     # c-1. Client provides their identity.
     while (True):
         client_id = input("Please enter your client ID to register: ").strip()
@@ -160,18 +173,20 @@ def client_registration():
 
 def start_program():
     """
-    a. Implement functionalities for the root CA to generate its own private/public key pair.
+    Method to start the program.
+    System specifications:
+        a. Implement functionalities for the root CA to generate its own private/public key pair.
 
-    b. Develop functions for issuing certificates for clients, including necessary
-    attributes such as client ID, public key, and validity period.
+        b. Develop functions for issuing certificates for clients, including necessary
+        attributes such as client ID, public key, and validity period.
 
-    c. Implement client registration functionality, allowing clients to provide their identity and public key.
+        c. Implement client registration functionality, allowing clients to provide their identity and public key.
 
-    d. Develop a mechanism for clients to submit certificate requests to the CA. The request should be encrypted.
+        d. Develop a mechanism for clients to submit certificate requests to the CA. The request should be encrypted.
 
-    e. Develop methods for validating certificates using the corresponding public keys and CA signatures.
+        e. Develop methods for validating certificates using the corresponding public keys and CA signatures.
 
-    f. Implement mechanisms for certificate revocation in case of compromise or expiration.
+        f. Implement mechanisms for certificate revocation in case of compromise or expiration.
     """
     print("===== FIT5163 Group2: Public key certificate system =====")
     # Function a
