@@ -9,6 +9,8 @@ class CertificateAuthority:
         self.private_key = private_key
         self.public_key = public_key
         self.sub_ca_list = []
+        self.encrypted_cert = None
+        self.signature = None
 
     def __str__(self):
         return_str = "Authority type: " + self.ca_type + "\n"

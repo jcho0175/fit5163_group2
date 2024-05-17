@@ -21,7 +21,7 @@ class PublicKeyCertSystem:
 
     # referred https://stackoverflow.com/questions/20483504/making-rsa-keys-from-a-password-in-python
     def generate_key_pair_for_clients(self, public_key_provided):
-        salt = "fit5136"  # replace with random salt if you can store one
+        salt = "fit5163"
         self.master_key = PBKDF2(public_key_provided, salt, count=10000)
         key = RSA.generate(2048, randfunc=self.rand_func_for_rsa)
         private_key = key.export_key().decode('utf-8')
@@ -29,14 +29,14 @@ class PublicKeyCertSystem:
         return private_key, public_key
 
     def rand_func_for_rsa(self, n):
-        # kluge: use PBKDF2 with count=1 and incrementing salt as deterministic PRNG
+        # PBKDF2 with count=1 and incrementing salt as deterministic PRNG
         self.counter += 1
         return PBKDF2(self.master_key, "random_func:%d" % self.counter, dkLen=n, count=1)
 
     def random_func(self, seed):
         return seed.to_bytes((seed.bit_length() + 7) // 8, byteorder='big')
 
-    def issue_certificate(self, client_id, public_key, validity_days):
+    def issue_certificate(self, client_id, public_key, validity_days, domain_name):
         # validity period
         valid_from = datetime.utcnow()
         valid_to = valid_from + timedelta(days=validity_days)
@@ -55,7 +55,8 @@ class PublicKeyCertSystem:
             "client_id": client_id,
             "public_key": public_key_components,
             "valid_from": valid_from.strftime("%Y-%m-%d %H:%M:%S"),
-            "valid_to": valid_to.strftime("%Y-%m-%d %H:%M:%S")
+            "valid_to": valid_to.strftime("%Y-%m-%d %H:%M:%S"),
+            "domain_name": domain_name
         }
         # certificate_data_bytes = str(certificate_data).encode()
         certificate_data_json = json.dumps(

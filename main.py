@@ -8,13 +8,18 @@ Topic:
     Design a public key certificate system that involves one root CA, two sub-CA and three clients.
 
 Suggestions:
-    1) Add more fields in certificate ex) domain name / student id
-    2) Chain of verification: root - sub ca - client
-    3) No need to choose sub CA
+    1) Add more fields in certificate ex) domain name / student id (implemented on May 17, 2024)
+    2) Chain of verification: root - sub ca - client (implemented on May 17, 2024)
+        Root CA: having its own certificate with digital signature
+        Sub CA: having certificate signed by Root CA (need to have digital signature of the root CA)
+        client: having certificate signed by a sub CA
+    3) No need to choose sub CA (implemented on May 17, 2024)
     4) Revocation by root authority
 """
 
 import json
+from random import choice
+
 from certificate_authority import CertificateAuthority
 from client import Client
 from public_key_cert_system import PublicKeyCertSystem
@@ -23,6 +28,10 @@ from public_key_cert_system import PublicKeyCertSystem
 public_key_cert_system = PublicKeyCertSystem()
 # List of client Registered
 registered_client_list = []
+# Default validity days
+validity_days = 365
+# Default domain name
+domain_name = "student.monash.edu"
 
 """
 Function a. Implement functionalities for the root CA to generate its own private/public key pair.
@@ -44,6 +53,32 @@ def create_CAs():
     # a-4. Create 2 sub CAs.
     sub_ca1 = CertificateAuthority("sub-CA1", sub1_private_key, sub1_public_key, root_ca)
     sub_ca2 = CertificateAuthority("sub-CA2", sub2_private_key, sub2_public_key, root_ca)
+
+    # Create certificates for Root CA and Sub CAs
+    root_ca_cert = public_key_cert_system.issue_certificate(
+        "root_ca", root_public_key, validity_days, domain_name)
+    root_encrypted_certificate_data, root_iv, root_signature, root_encrypted_session_key = public_key_cert_system.request_encrypt(
+        root_ca_cert, root_public_key, root_private_key)
+
+    root_ca.encrypted_cert = root_encrypted_certificate_data
+    root_ca.signature = root_signature
+
+    # sub-CAs' certificates: signed by the root
+    sub_ca1_cert = public_key_cert_system.issue_certificate(
+        "sub_ca1", sub1_public_key, validity_days, domain_name)
+    sub1_encrypted_certificate_data, sub1_iv, sub1_signature, sub1_encrypted_session_key = public_key_cert_system.request_encrypt(
+        sub_ca1_cert, root_public_key, root_private_key)
+
+    sub_ca1.encrypted_cert = sub1_encrypted_certificate_data
+    sub_ca1.signature = sub1_signature
+
+    sub_ca2_cert = public_key_cert_system.issue_certificate(
+        "sub_ca2", sub2_public_key, validity_days, domain_name)
+    sub2_encrypted_certificate_data, sub2_iv, sub2_signature, sub2_encrypted_session_key = public_key_cert_system.request_encrypt(
+        sub_ca2_cert, root_public_key, root_private_key)
+
+    sub_ca2.encrypted_cert = sub2_encrypted_certificate_data
+    sub_ca2.signature = sub2_signature
 
     # a-5. Add sub CAs to the root CA's subordinate CA list.
     root_ca.add_sub_ca(sub_ca1)
@@ -67,27 +102,16 @@ Function b. Develop functions for issuing certIficates for clients,
             including necessary attributes such as client ID, public key, and validity period.
 """
 def issue_certificate(root_ca, client):
-    # b-1. Choose a sub CA to issue certificate from.
-    while (True):
-        chosen_sub_ca = input("Please select a sub CA\n1.Sub-CA1\n2.Sub-CA2\nYour choice:")
-        if chosen_sub_ca == '1':
-            client.ca = root_ca.sub_ca_list[0]
-        elif chosen_sub_ca == '2':
-            client.ca = root_ca.sub_ca_list[1]
-        else:
-            print("There are only 2 Sub-CAs in the system.")
-            continue
-        break
+    # b-1. Choose a sub CA randomly to issue certificate from.
+    client.ca = choice(root_ca.sub_ca_list)
+
     print()
     print("Client Information >>> \n" + client.__str__())
-
-    # b-2. Set a validity period (30 days).
-    validity_days = 30
 
     # b-3. Issue certificate for the client.
     print("Issuing certificate ....")
     certificate_data_json = public_key_cert_system.issue_certificate(
-        client.client_id, client.public_key, validity_days)
+        client.client_id, client.public_key, validity_days, domain_name)
     print(".... Certificate issued")
 
     # b-4. Print out the certificate.
@@ -216,4 +240,3 @@ def start_program():
 if __name__ == '__main__':
     start_program()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
